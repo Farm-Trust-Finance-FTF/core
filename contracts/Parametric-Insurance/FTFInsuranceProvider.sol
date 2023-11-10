@@ -35,8 +35,13 @@ contract FTFInsuranceProvider {
         link.transfer(address(i), ((_duration.div(DAY_IN_SECONDS)) + 2) * ORACLE_PAYMENT.mul(2));
 
         return address(i);
+<<<<<<< HEAD
 
     }
+=======
+    }
+
+>>>>>>> d9d321d944f19530db068c8ed08cdd409f69d871
     constructor() public payable {
         priceFeed = AggregatorV3Interface(0x9326BFA02ADD2366b30bacB125260Af641031331);
     }
@@ -97,6 +102,7 @@ contract FTFInsuranceProvider {
 }
 
 contract InsuranceContract is ChainlinkClient, Ownable  {
+<<<<<<< HEAD
 
     using SafeMathChainlink for uint;
     AggregatorV3Interface internal priceFeed;
@@ -138,6 +144,8 @@ contract InsuranceContract is ChainlinkClient, Ownable  {
     uint requestCount = 0;
     uint dataRequestsSent = 0;
 
+=======
+>>>>>>> d9d321d944f19530db068c8ed08cdd409f69d871
     constructor(address _client, uint _duration, uint _premium, uint _payoutValue,
     string _cropLocation, address _link,
     uint256 _oraclePaymentAmount)  payable Ownable() public {
