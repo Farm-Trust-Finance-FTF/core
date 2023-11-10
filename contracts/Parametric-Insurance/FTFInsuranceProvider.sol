@@ -35,8 +35,8 @@ contract FTFInsuranceProvider {
         link.transfer(address(i), ((_duration.div(DAY_IN_SECONDS)) + 2) * ORACLE_PAYMENT.mul(2));
 
         return address(i);
-    }
 
+    }
     constructor() public payable {
         priceFeed = AggregatorV3Interface(0x9326BFA02ADD2366b30bacB125260Af641031331);
     }
@@ -97,6 +97,47 @@ contract FTFInsuranceProvider {
 }
 
 contract InsuranceContract is ChainlinkClient, Ownable  {
+
+    using SafeMathChainlink for uint;
+    AggregatorV3Interface internal priceFeed;
+
+    uint public constant DAY_IN_SECONDS = 60;
+    uint public constant DROUGHT_DAYS_THRESDHOLD = 3 ;
+    uint256 private oraclePaymentAmount;
+
+    address public insurer;
+    address client;
+    uint startDate;
+    uint duration;
+    uint premium;
+    uint payoutValue;
+    string cropLocation;
+
+
+    uint256[2] public currentRainfallList;
+    bytes32[2] public jobIds;
+    address[2] public oracles;
+
+    string constant WORLD_WEATHER_ONLINE_URL = "http://api.worldweatheronline.com/premium/v1/weather.ashx?";
+    string constant WORLD_WEATHER_ONLINE_KEY = "";
+    string constant WORLD_WEATHER_ONLINE_PATH = "data.current_condition.0.precipMM";
+
+    string constant OPEN_WEATHER_URL = "https://openweathermap.org/data/2.5/weather?";
+    string constant OPEN_WEATHER_KEY = "";
+    string constant OPEN_WEATHER_PATH = "rain.1h";
+
+    string constant WEATHERBIT_URL = "https://api.weatherbit.io/v2.0/current?";
+    string constant WEATHERBIT_KEY = "";
+    string constant WEATHERBIT_PATH = "data.0.precip";
+
+    uint daysWithoutRain;
+    bool contractActive;
+    bool contractPaid = false;
+    uint currentRainfall = 0;
+    uint currentRainfallDateChecked = now;
+    uint requestCount = 0;
+    uint dataRequestsSent = 0;
+
     constructor(address _client, uint _duration, uint _premium, uint _payoutValue,
     string _cropLocation, address _link,
     uint256 _oraclePaymentAmount)  payable Ownable() public {
