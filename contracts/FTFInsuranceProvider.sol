@@ -41,6 +41,60 @@ contract FTFInsuranceProvider {
     constructor() public payable {
         priceFeed = AggregatorV3Interface(0x9326BFA02ADD2366b30bacB125260Af641031331);
     }
+
+    function getContract(address _contract) external view returns (InsuranceContract) {
+        return contracts[_contract];
+    }
+
+    function updateContract(address _contract) external {
+        InsuranceContract i = InsuranceContract(_contract);
+        i.updateContract();
+    }
+
+    function getContractRainfall(address _contract) external view returns(uint) {
+        InsuranceContract i = InsuranceContract(_contract);
+        return i.getCurrentRainfall();
+    }
+
+    function getContractRequestCount(address _contract) external view returns(uint) {
+        InsuranceContract i = InsuranceContract(_contract);
+        return i.getRequestCount();
+    }
+
+    function getInsurer() external view returns (address) {
+        return insurer;
+    }
+
+    function getContractStatus(address _address) external view returns (bool) {
+        InsuranceContract i = InsuranceContract(_address);
+        return i.getContractStatus();
+    }
+    function getContractBalance() external view returns (uint) {
+        return address(this).balance;
+    }
+
+    function endContractProvider() external payable onlyOwner() {
+        LinkTokenInterface link = LinkTokenInterface(LINK_KOVAN);
+        require(link.transfer(msg.sender, link.balanceOf(address(this))), "Unable to transfer");
+        selfdestruct(insurer);
+    }
+
+    function getLatestPrice() public view returns (int) {
+        (
+            uint80 roundID,
+            int price,
+            uint startedAt,
+            uint timeStamp,
+            uint80 answeredInRound
+        ) = priceFeed.latestRoundData();
+        // If the round is not complete yet, timestamp is 0
+        require(timeStamp > 0, "Round not complete");
+        return price;
+    }
+
+     //receive() external payable { }
+        fallback() external payable { }
+    //function() external payable { }
 }
 
 contract InsuranceContract is ChainlinkClient, Ownable  {
