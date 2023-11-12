@@ -258,4 +258,24 @@ contract InsuranceContract is ChainlinkClient, Ownable  {
 
     }
 
+    /**
+     * @dev Insurance conditions have been met, do payout of total cover amount to client
+     */
+    function payOutContract() private onContractActive()  {
+
+        //Transfer agreed amount to client
+        client.transfer(address(this).balance);
+
+        //Transfer any remaining funds (premium) back to Insurer
+        LinkTokenInterface link = LinkTokenInterface(chainlinkTokenAddress());
+        require(link.transfer(insurer, link.balanceOf(address(this))), "Unable to transfer");
+
+        emit contractPaidOut(now, payoutValue, currentRainfall);
+
+        //now that amount has been transferred, can end the contract
+        //mark contract as ended, so no future calls can be done
+        contractActive = false;
+        contractPaid = true;
+    }
+
 }
