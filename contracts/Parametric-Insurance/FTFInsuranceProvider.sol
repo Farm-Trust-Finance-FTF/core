@@ -213,7 +213,22 @@ contract InsuranceContract is ChainlinkClient, Ownable  {
             checkRainfall(oracles[1], jobIds[1], url, WEATHERBIT_PATH);
         }
     }
-
     
+    function checkRainfall(address _oracle, bytes32 _jobId, string _url, string _path) private onContractActive() returns (bytes32 requestId)   {
+
+        //First build up a request to get the current rainfall
+        Chainlink.Request memory req = buildChainlinkRequest(_jobId, address(this), this.checkRainfallCallBack.selector);
+
+        req.add("get", _url); //sends the GET request to the oracle
+        req.add("path", _path);
+        req.addInt("times", 100);
+
+        requestId = sendChainlinkRequestTo(_oracle, req, oraclePaymentAmount);
+
+        emit dataRequestSent(requestId);
+    }
+
+
+
 
 }
