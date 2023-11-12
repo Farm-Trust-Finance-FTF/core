@@ -213,7 +213,7 @@ contract InsuranceContract is ChainlinkClient, Ownable  {
             checkRainfall(oracles[1], jobIds[1], url, WEATHERBIT_PATH);
         }
     }
-    
+
     function checkRainfall(address _oracle, bytes32 _jobId, string _url, string _path) private onContractActive() returns (bytes32 requestId)   {
 
         //First build up a request to get the current rainfall
@@ -228,7 +228,34 @@ contract InsuranceContract is ChainlinkClient, Ownable  {
         emit dataRequestSent(requestId);
     }
 
+    function checkRainfallCallBack(bytes32 _requestId, uint256 _rainfall) public recordChainlinkFulfillment(_requestId) onContractActive() callFrequencyOncePerDay()  {
+        //set current temperature to value returned from Oracle, and store date this was retrieved (to avoid spam and gaming the contract)
+        currentRainfallList[dataRequestsSent] = _rainfall;
+        dataRequestsSent = dataRequestsSent + 1;
 
+       //set current rainfall to average of both values
+        if (dataRequestsSent > 1) {
+        currentRainfall = (currentRainfallList[0].add(currentRainfallList[1]).div(2));
+        currentRainfallDateChecked = now;
+        requestCount +=1;
 
+          //check if payout conditions have been met, if so call payoutcontract, which should also end/kill contract at the end
+          if (currentRainfall == 0 ) { //temp threshold has been  met, add a day of over threshold
+            daysWithoutRain += 1;
+            } else {
+              //there was rain today, so reset daysWithoutRain parameter
+            daysWithoutRain = 0;
+            emit ranfallThresholdReset(currentRainfall);
+            }
+
+          if (daysWithoutRain >= DROUGHT_DAYS_THRESDHOLD) {  // day threshold has been met
+              //need to pay client out insurance amount
+            payOutContract();
+            }
+        }
+
+        emit dataReceived(_rainfall);
+
+    }
 
 }
