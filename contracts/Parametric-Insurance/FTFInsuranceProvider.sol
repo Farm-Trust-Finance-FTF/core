@@ -166,5 +166,36 @@ contract InsuranceContract is ChainlinkClient, Ownable  {
     constructor(address _client, uint _duration, uint _premium, uint _payoutValue,
     string _cropLocation, address _link,
     uint256 _oraclePaymentAmount)  payable Ownable() public {
+        //set ETH/USD Price Feed
+        priceFeed = AggregatorV3Interface(0x9326BFA02ADD2366b30bacB125260Af641031331);
+
+        //initialize variables required for Chainlink Network interaction
+        setChainlinkToken(_link);
+        oraclePaymentAmount = _oraclePaymentAmount;
+
+        //first ensure insurer has fully funded the contract
+        require(msg.value >= _payoutValue.div(uint(getLatestPrice())), "Not enough funds sent to contract");
+
+        //now initialize values for the contract
+        insurer= msg.sender;
+        client = _client;
+        startDate = now ; //contract will be effective immediately on creation
+        duration = _duration;
+        premium = _premium;
+        payoutValue = _payoutValue;
+        daysWithoutRain = 0;
+        contractActive = true;
+        cropLocation = _cropLocation;
+
+        oracles[0] = 0x05c8fadf1798437c143683e665800d58a42b6e19;
+        oracles[1] = 0x05c8fadf1798437c143683e665800d58a42b6e19;
+        jobIds[0] = 'a17e8fbf4cbf46eeb79e04b3eb864a4e';
+        jobIds[1] = 'a17e8fbf4cbf46eeb79e04b3eb864a4e';
+
+        emit contractCreated(insurer,
+                            client,
+                            duration,
+                            premium,
+                            payoutValue);
     }
 }
