@@ -119,12 +119,12 @@ contract InsuranceContract is ChainlinkClient, Ownable  {
     address[2] public oracles;
 
     string constant WORLD_WEATHER_ONLINE_URL = "http://api.worldweatheronline.com/premium/v1/weather.ashx?";
-    string constant WORLD_WEATHER_ONLINE_KEY = "";
+    string constant WORLD_WEATHER_ONLINE_KEY = "629c6dd09bbc4364b7a33810200911";
     string constant WORLD_WEATHER_ONLINE_PATH = "data.current_condition.0.precipMM";
 
-    string constant OPEN_WEATHER_URL = "https://openweathermap.org/data/2.5/weather?";
-    string constant OPEN_WEATHER_KEY = "f308642762d425d44855cf07466f05ab";
-    string constant OPEN_WEATHER_PATH = "rain.1h";
+    // string constant OPEN_WEATHER_URL = "https://openweathermap.org/data/2.5/weather?";
+    // string constant OPEN_WEATHER_KEY = "f308642762d425d44855cf07466f05ab";
+    // string constant OPEN_WEATHER_PATH = "rain.1h";
 
     string constant WEATHERBIT_URL = "https://api.weatherbit.io/v2.0/current?";
     string constant WEATHERBIT_KEY = "3daaae1d22e648b8a8310562bf5184f9";
@@ -277,5 +277,188 @@ contract InsuranceContract is ChainlinkClient, Ownable  {
         contractActive = false;
         contractPaid = true;
     }
+
+    /**
+     * @dev Insurance conditions have not been met, and contract expired, end contract and return funds
+     */
+    function checkEndContract() private onContractEnded()   {
+        //Insurer needs to have performed at least 1 weather call per day to be eligible to retrieve funds back.
+        //We will allow for 1 missed weather call to account for unexpected issues on a given day.
+        if (requestCount >= (duration.div(DAY_IN_SECONDS) - 2)) {
+            //return funds back to insurance provider then end/kill the contract
+            insurer.transfer(address(this).balance);
+        } else { //insurer hasn't done the minimum number of data requests, client is eligible to receive his premium back
+            // need to use ETH/USD price feed to calculate ETH amount
+            client.transfer(premium.div(uint(getLatestPrice())));
+            insurer.transfer(address(this).balance);
+        }
+
+        //transfer any remaining LINK tokens back to the insurer
+        LinkTokenInterface link = LinkTokenInterface(chainlinkTokenAddress());
+        require(link.transfer(insurer, link.balanceOf(address(this))), "Unable to transfer remaining LINK tokens");
+
+        //mark contract as ended, so no future state changes can occur on the contract
+        contractActive = false;
+        emit contractEnded(now, address(this).balance);
+    }
+
+    /**
+     * Returns the latest price
+     */
+    function getLatestPrice() public view returns (int) {
+        (
+            uint80 roundID,
+            int price,
+            uint startedAt,
+            uint timeStamp,
+            uint80 answeredInRound
+        ) = priceFeed.latestRoundData();
+        // If the round is not complete yet, timestamp is 0
+        require(timeStamp > 0, "Round not complete");
+        return price;
+    }
+
+
+    /**
+     * @dev Get the balance of the contract
+     */
+    function getContractBalance() external view returns (uint) {
+        return address(this).balance;
+    }
+
+    /**
+     * @dev Get the Crop Location
+     */
+    function getLocation() external view returns (string) {
+        return cropLocation;
+    }
+
+
+    /**
+     * @dev Get the Total Cover
+     */
+    function getPayoutValue() external view returns (uint) {
+        return payoutValue;
+    }
+
+
+    /**
+     * @dev Get the Premium paid
+     */
+    function getPremium() external view returns (uint) {
+        return premium;
+    }
+
+    /**
+     * @dev Get the status of the contract
+     */
+    function getContractStatus() external view returns (bool) {
+        return contractActive;
+    }
+
+    /**
+     * @dev Get whether the contract has been paid out or not
+     */
+    function getContractPaid() external view returns (bool) {
+        return contractPaid;
+    }
+
+
+    /**
+     * @dev Get the current recorded rainfall for the contract
+     */
+    function getCurrentRainfall() external view returns (uint) {
+        return currentRainfall;
+    }
+
+    /**
+     * @dev Get the recorded number of days without rain
+     */
+    function getDaysWithoutRain() external view returns (uint) {
+        return daysWithoutRain;
+    }
+
+    /**
+     * @dev Get the count of requests that has occured for the Insurance Contract
+     */
+    function getRequestCount() external view returns (uint) {
+        return requestCount;
+    }
+
+    /**
+     * @dev Get the last time that the rainfall was checked for the contract
+     */
+    function getCurrentRainfallDateChecked() external view returns (uint) {
+        return currentRainfallDateChecked;
+    }
+
+    /**
+     * @dev Get the contract duration
+     */
+    function getDuration() external view returns (uint) {
+        return duration;
+    }
+
+    /**
+     * @dev Get the contract start date
+     */
+    function getContractStartDate() external view returns (uint) {
+        return startDate;
+    }
+
+    /**
+     * @dev Get the current date/time according to the blockchain
+     */
+    function getNow() external view returns (uint) {
+        return now;
+    }
+
+    /**
+     * @dev Get address of the chainlink token
+     */
+    function getChainlinkToken() public view returns (address) {
+        return chainlinkTokenAddress();
+    }
+
+    /**
+     * @dev Helper function for converting a string to a bytes32 object
+     */
+    function stringToBytes32(string memory source) private pure returns (bytes32 result) {
+        bytes memory tempEmptyStringTest = bytes(source);
+        if (tempEmptyStringTest.length == 0) {
+        return 0x0;
+        }
+
+        assembly { // solhint-disable-line no-inline-assembly
+        result := mload(add(source, 32))
+        }
+    }
+
+    /**
+     * @dev Helper function for converting uint to a string
+     */
+    function uint2str(uint _i) internal pure returns (string memory _uintAsString) {
+        if (_i == 0) {
+            return "0";
+        }
+        uint j = _i;
+        uint len;
+        while (j != 0) {
+            len++;
+            j /= 10;
+        }
+        bytes memory bstr = new bytes(len);
+        uint k = len - 1;
+        while (_i != 0) {
+            bstr[k--] = byte(uint8(48 + _i % 10));
+            _i /= 10;
+        }
+        return string(bstr);
+    }
+
+    /**
+     * @dev Fallback function so contrat can receive ether when required
+     */
+    function() external payable {  }
 
 }
