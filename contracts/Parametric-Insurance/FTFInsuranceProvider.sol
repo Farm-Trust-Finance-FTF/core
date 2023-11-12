@@ -144,7 +144,7 @@ contract InsuranceContract is ChainlinkClient, Ownable  {
     }
     modifier onContractEnded() {
         if (startDate + duration < now) {
-          _;
+        _;
         }
     }
     modifier onContractActive() {
@@ -198,4 +198,22 @@ contract InsuranceContract is ChainlinkClient, Ownable  {
                             premium,
                             payoutValue);
     }
+
+    function updateContract() public onContractActive() returns (bytes32 requestId)   {
+        checkEndContract();
+
+        if (contractActive) {
+            dataRequestsSent = 0;
+            //First build up a request to World Weather Online to get the current rainfall
+            string memory url = string(abi.encodePacked(WORLD_WEATHER_ONLINE_URL, "key=",WORLD_WEATHER_ONLINE_KEY,"&q=",cropLocation,"&format=json&num_of_days=1"));
+            checkRainfall(oracles[0], jobIds[0], url, WORLD_WEATHER_ONLINE_PATH);
+
+            // Now build up the second request to WeatherBit
+            url = string(abi.encodePacked(WEATHERBIT_URL, "city=",cropLocation,"&key=",WEATHERBIT_KEY));
+            checkRainfall(oracles[1], jobIds[1], url, WEATHERBIT_PATH);
+        }
+    }
+
+    
+
 }
