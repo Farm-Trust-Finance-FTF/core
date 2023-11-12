@@ -35,13 +35,8 @@ contract FTFInsuranceProvider {
         link.transfer(address(i), ((_duration.div(DAY_IN_SECONDS)) + 2) * ORACLE_PAYMENT.mul(2));
 
         return address(i);
-<<<<<<< HEAD
 
     }
-=======
-    }
-
->>>>>>> d9d321d944f19530db068c8ed08cdd409f69d871
     constructor() public payable {
         priceFeed = AggregatorV3Interface(0x9326BFA02ADD2366b30bacB125260Af641031331);
     }
@@ -102,7 +97,6 @@ contract FTFInsuranceProvider {
 }
 
 contract InsuranceContract is ChainlinkClient, Ownable  {
-<<<<<<< HEAD
 
     using SafeMathChainlink for uint;
     AggregatorV3Interface internal priceFeed;
@@ -129,11 +123,11 @@ contract InsuranceContract is ChainlinkClient, Ownable  {
     string constant WORLD_WEATHER_ONLINE_PATH = "data.current_condition.0.precipMM";
 
     string constant OPEN_WEATHER_URL = "https://openweathermap.org/data/2.5/weather?";
-    string constant OPEN_WEATHER_KEY = "";
+    string constant OPEN_WEATHER_KEY = "f308642762d425d44855cf07466f05ab";
     string constant OPEN_WEATHER_PATH = "rain.1h";
 
     string constant WEATHERBIT_URL = "https://api.weatherbit.io/v2.0/current?";
-    string constant WEATHERBIT_KEY = "";
+    string constant WEATHERBIT_KEY = "3daaae1d22e648b8a8310562bf5184f9";
     string constant WEATHERBIT_PATH = "data.0.precip";
 
     uint daysWithoutRain;
@@ -144,8 +138,31 @@ contract InsuranceContract is ChainlinkClient, Ownable  {
     uint requestCount = 0;
     uint dataRequestsSent = 0;
 
-=======
->>>>>>> d9d321d944f19530db068c8ed08cdd409f69d871
+    modifier onlyOwner() {
+		require(insurer == msg.sender,'Only Insurance provider can do this');
+        _;
+    }
+    modifier onContractEnded() {
+        if (startDate + duration < now) {
+          _;
+        }
+    }
+    modifier onContractActive() {
+        require(contractActive == true ,'Contract has ended, cant interact with it anymore');
+        _;
+    }
+    modifier callFrequencyOncePerDay() {
+        require(now.sub(currentRainfallDateChecked) > (DAY_IN_SECONDS.sub(DAY_IN_SECONDS.div(12))),'Can only check rainfall once per day');
+        _;
+    }
+
+    event contractCreated(address _insurer, address _client, uint _duration, uint _premium, uint _totalCover);
+    event contractPaidOut(uint _paidTime, uint _totalPaid, uint _finalRainfall);
+    event contractEnded(uint _endTime, uint _totalReturned);
+    event ranfallThresholdReset(uint _rainfall);
+    event dataRequestSent(bytes32 requestId);
+    event dataReceived(uint _rainfall);
+
     constructor(address _client, uint _duration, uint _premium, uint _payoutValue,
     string _cropLocation, address _link,
     uint256 _oraclePaymentAmount)  payable Ownable() public {
