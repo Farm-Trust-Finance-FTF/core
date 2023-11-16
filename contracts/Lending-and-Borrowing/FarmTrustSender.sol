@@ -7,12 +7,7 @@ import {IRouterClient} from "@chainlink/contracts-ccip/src/v0.8/ccip/interfaces/
 import {OwnerIsCreator} from "@chainlink/contracts-ccip/src/v0.8/shared/access/OwnerIsCreator.sol";
 import {LinkTokenInterface} from "@chainlink/contracts/src/v0.8/interfaces/LinkTokenInterface.sol";
 import {IERC20} from "@chainlink/contracts-ccip/src/v0.8/vendor/openzeppelin-solidity/v4.8.0/token/ERC20/IERC20.sol";
-<<<<<<< HEAD
 import {Errors} from "./library/Errors.sol";
-=======
-
-// import {Errors} from "./library/Errors.sol";
->>>>>>> master
 
 contract FarmTrustSender is CCIPReceiver, OwnerIsCreator {
     // CUSTOM ERRORS
@@ -23,15 +18,6 @@ contract FarmTrustSender is CCIPReceiver, OwnerIsCreator {
     error NotEnoughBalance(uint256, uint256);
     error NothingToWithdraw();
     error FailedToWithdrawEth(address owner, uint256 value);
-<<<<<<< HEAD
-=======
-    error DestinationChainNotWhitelisted(uint64 destinationChainSelector);
-    error DepositFromZeroAddress();
-    error InsufficientAmount();
-    error WithdrawalFromZeroAddress();
-    error ChainSelectorZero();
-    error ZeroAddress();
->>>>>>> master
 
     // Data Structures
     struct MessageIn {
@@ -65,14 +51,6 @@ contract FarmTrustSender is CCIPReceiver, OwnerIsCreator {
         Client.EVMTokenAmount tokenAmount
     );
 
-<<<<<<< HEAD
-=======
-    event ETHDeposited(address sender, uint256 amount);
-    event TokenDeposited(address sender, address token, uint256 amount);
-    event ETHWithdrawn(address sender, uint256 amount);
-    event TokenWithdrawn(address sender, uint256 amount);
-
->>>>>>> master
     // STORAGE VARIABLES
     bytes32[] public receivedMessages;
     mapping(bytes32 => MessageIn) public messageDetail;
@@ -80,67 +58,16 @@ contract FarmTrustSender is CCIPReceiver, OwnerIsCreator {
 
     LinkTokenInterface linkToken;
 
-<<<<<<< HEAD
-=======
-    mapping(uint64 => bool) public whitelistedChains;
-
-    modifier onlyWhitelistedChain(uint64 _destinationChainSelector) {
-        if (!whitelistedChains[_destinationChainSelector])
-            revert DestinationChainNotWhitelisted(_destinationChainSelector);
-        _;
-    }
-
->>>>>>> master
     constructor(address _router, address link) CCIPReceiver(_router) {
         linkToken = LinkTokenInterface(link);
     }
 
-<<<<<<< HEAD
-=======
-    /**
-     * @param _destinationChainSelector, the destination chain selector. Available on chainlink
-     * @dev allows the owner to whitelisted Chains
-     */
-    function whitelistChain(
-        uint64 _destinationChainSelector
-    ) external onlyOwner {
-        whitelistedChains[_destinationChainSelector] = true;
-    }
-
-    function denylistChain(
-        uint64 _destinationChainSelector
-    ) external onlyOwner {
-        whitelistedChains[_destinationChainSelector] = false;
-    }
-
-    /**
-     * @param destinationChainSelector the selector for the destinationchain ie the destination blockchain
-     * @param receiver the receiver address.
-     * @param tokenToTransfer the address of the token.
-     * @param transferAmount the amount
-     * @dev Uses the  Chainlink CCIP, to transfers the deposited tokens, along with some message data, to Protocol contract, `FarmTrustProtocol.sol` and returns the `messageId`
-     */
-
->>>>>>> master
     function sendMessage(
         uint64 destinationChainSelector,
         address receiver,
         address tokenToTransfer,
         uint256 transferAmount
-<<<<<<< HEAD
     ) external returns (bytes32 messageId) {
-=======
-    )
-        external
-        onlyWhitelistedChain(destinationChainSelector)
-        returns (bytes32 messageId)
-    {
-        if (destinationChainSelector == 0) revert ChainSelectorZero();
-        if (receiver == address(0)) revert ZeroAddress();
-        if (tokenToTransfer == address(0)) revert ZeroAddress();
-        if (transferAmount == 0) revert InsufficientAmount();
-
->>>>>>> master
         // Compose the EVMTokenAmountStruct. This struct describes the tokens being transferred using CCIP.
         Client.EVMTokenAmount memory tokenAmount = Client.EVMTokenAmount({
             token: tokenToTransfer,
@@ -155,7 +82,6 @@ contract FarmTrustSender is CCIPReceiver, OwnerIsCreator {
         bytes memory data = abi.encode(msg.sender);
 
         Client.EVM2AnyMessage memory evm2AnyMessage = Client.EVM2AnyMessage({
-<<<<<<< HEAD
             receiver: abi.encode(receiver), // ABI-encoded receiver contract address
             data: data,
             tokenAmounts: tokenAmounts,
@@ -163,15 +89,6 @@ contract FarmTrustSender is CCIPReceiver, OwnerIsCreator {
                 Client.EVMExtraArgsV1({gasLimit: 200_000, strict: false}) // Additional arguments, setting gas limit and non-strict sequency mode
             ),
             feeToken: address(linkToken) // Setting feeToken to LinkToken address, indicating LINK will be used for fees
-=======
-            receiver: abi.encode(receiver),
-            data: data,
-            tokenAmounts: tokenAmounts,
-            extraArgs: Client._argsToBytes(
-                Client.EVMExtraArgsV1({gasLimit: 200_000, strict: false})
-            ),
-            feeToken: address(linkToken)
->>>>>>> master
         });
 
         // Initialize a router client instance to interact with cross-chain router
@@ -180,12 +97,6 @@ contract FarmTrustSender is CCIPReceiver, OwnerIsCreator {
         // Get the fee required to send the message. Fee paid in LINK.
         uint256 fees = router.getFee(destinationChainSelector, evm2AnyMessage);
 
-<<<<<<< HEAD
-=======
-        if (fees > linkToken.balanceOf(address(this)))
-            revert NotEnoughBalance(linkToken.balanceOf(address(this)), fees);
-
->>>>>>> master
         // Approve the Router to pay fees in LINK tokens on contract's behalf.
         linkToken.approve(address(router), fees);
 
@@ -276,52 +187,17 @@ contract FarmTrustSender is CCIPReceiver, OwnerIsCreator {
         );
     }
 
-<<<<<<< HEAD
     function deposit() external payable {
         recordDeposit(msg.sender, msg.value);
     }
 
     function recordDeposit(address sender, uint256 amount) internal {
-=======
-    /**
-     * @dev allows `FramTrustFinance` user to deposit ETH token on this contract (Source Blockchain). The deposited token will be transfer to the destination Blockchain, using chainLink CCIP to the `FarmTrustProtocol.sol` contract and available for borrower there.
-     */
-    function depositETH() external payable {
-        _recordDeposit(msg.sender, msg.value);
-
-        emit ETHDeposited(msg.sender, msg.value);
-    }
-
-    function _recordDeposit(address sender, uint256 amount) internal {
-        if (sender == address(0)) revert DepositFromZeroAddress();
-        if (amount == 0) revert InsufficientAmount();
-
->>>>>>> master
         deposits[sender].amount += amount;
         if (!deposits[sender].isLocked) {
             deposits[sender].isLocked = true;
         }
     }
 
-<<<<<<< HEAD
-=======
-    /**
-     * @dev allows `FramTrustFinance` user to deposit tokens on this contract (Source Blockchain). The deposited token will be transfer to the destination Blockchain, using chainLink CCIP to the `FarmTrustProtocol.sol` contract and available for borrower there.
-     */
-    function depositToken(address token, uint256 amount) external payable {
-        if (token == address(0)) revert DepositFromZeroAddress();
-        if (amount == 0) revert InsufficientAmount();
-
-        IERC20(token).transferFrom(msg.sender, address(this), amount);
-
-        deposits[msg.sender].amount += amount;
-        if (!deposits[msg.sender].isLocked) {
-            deposits[msg.sender].isLocked = true;
-        }
-        emit TokenDeposited(msg.sender, token, amount);
-    }
-
->>>>>>> master
     function isChainSupported(
         uint64 destChainSelector
     ) external view returns (bool supported) {
@@ -353,17 +229,6 @@ contract FarmTrustSender is CCIPReceiver, OwnerIsCreator {
 
     receive() external payable {}
 
-<<<<<<< HEAD
-=======
-    fallback() external payable {}
-
-    /**
-     * @notice Allows the contract owner to withdraw the entire balance of Ether from the contract.
-     * @dev This function reverts if there are no funds to withdraw or if the transfer fails.
-    It should only be callable by the owner of the contract.
-     */
-
->>>>>>> master
     function withdraw() public onlyOwner {
         // Retrieve the balance of this contract
         uint256 amount = address(this).balance;
@@ -373,7 +238,6 @@ contract FarmTrustSender is CCIPReceiver, OwnerIsCreator {
 
         // Revert if the send failed, with information about the attempted transfer
         if (!sent) revert FailedToWithdrawEth(msg.sender, amount);
-<<<<<<< HEAD
     }
 
     function withdrawToken(address token) public onlyOwner {
@@ -382,28 +246,3 @@ contract FarmTrustSender is CCIPReceiver, OwnerIsCreator {
         IERC20(token).transfer(msg.sender, amount);
     }
 }
-=======
-
-        emit ETHWithdrawn(msg.sender, amount);
-    }
-
-    /**
-     * @notice Allows the owner of the contract to withdraw all tokens of a specific ERC20 token.
-     * @dev This function reverts with a 'NothingToWithdraw' error if there are no tokens to withdraw.
-     * @param token The contract address of the ERC20 token to be withdrawn.
-     */
-    function withdrawToken(address token) public onlyOwner {
-        if (token == address(0)) revert WithdrawalFromZeroAddress();
-
-        // Retrieve the balance of this contract
-        uint256 amount = IERC20(token).balanceOf(address(this));
-        IERC20(token).transfer(msg.sender, amount);
-
-        emit TokenWithdrawn(msg.sender, amount);
-    }
-}
-
-/**
- * A DEFI user deposits a token in Sender, and then, using Chainlink CCIP, transfers that token, along with some message data, to Protocol. The Protocol contract that accepts the deposit. Using that transferred token as collateral, the user (i.e. depositor/borrower - the same EOA as on the source chain) initiates a borrow operation which mints units of the mock stablecoin to lend to the depositor/borrower .
- */
->>>>>>> master
