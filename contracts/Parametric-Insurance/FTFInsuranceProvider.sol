@@ -1,6 +1,10 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
+import "@chainlink/contracts/src/v0.8/Chainlink.sol";
+import "@chainlink/contracts/src/v0.8/ChainlinkClient.sol";
+import "@chainlink/contracts/src/v0.8/interfaces/AggregatorV3Interface.sol";
+import "@chainlink/contracts/src/v0.8/shared/interfaces/LinkTokenInterface.sol";
 import "./FTFUserInsuranceContract.sol";
 
 contract InsuranceProvider is ChainlinkClient {
@@ -9,8 +13,7 @@ contract InsuranceProvider is ChainlinkClient {
     uint public constant DAY_IN_SECONDS = 60; //How many seconds in a day. 60 for testing, 86400 for Production
     uint256 constant private ORACLE_PAYMENT = 0.1 * 10**18;
     address public constant LINK_KOVAN = 0xa36085F69e2889c224210F603D836748e7dC0088;
-
-    mapping(address => FTFUserInsuranceContract) contracts;
+    mapping(address => InsuranceContract) contracts;
 
     event ContractCreated(address indexed insuranceContract, uint premium, uint totalCover);
 
@@ -32,7 +35,9 @@ contract InsuranceProvider is ChainlinkClient {
         uint _payoutValue,
         string memory _cropLocation
     ) public payable onlyInsuranceProviderOwner returns(address) {
-        FTFUserInsuranceContract i = new FTFUserInsuranceContract{
+        // ... (existing code)
+
+        InsuranceContract i = new InsuranceContract{
             value: (_payoutValue * 1 ether) / uint(getLatestPrice())
         }(
             _client,
@@ -53,22 +58,22 @@ contract InsuranceProvider is ChainlinkClient {
         return address(i);
     }
 
-    function getContract(address contractAddress) external view returns (FTFUserInsuranceContract) {
+    function getContract(address contractAddress) external view returns (InsuranceContract) {
         return contracts[contractAddress];
     }
 
     function updateContract(address contractAddress) external {
-        FTFUserInsuranceContract i = FTFUserInsuranceContract(payable(contractAddress));
+        InsuranceContract i = InsuranceContract(payable(contractAddress));
         i.updateContract();
     }
 
     function getContractRainfall(address contractAddress) external view returns (uint) {
-        FTFUserInsuranceContract i = FTFUserInsuranceContract(payable(contractAddress));
+        InsuranceContract i = InsuranceContract(payable(contractAddress));
         return i.getCurrentRainfall();
     }
 
     function getContractRequestCount(address contractAddress) external view returns (uint) {
-        FTFUserInsuranceContract i = FTFUserInsuranceContract(payable(contractAddress));
+        InsuranceContract i = InsuranceContract(payable(contractAddress));
         return i.getRequestCount();
     }
 
@@ -77,9 +82,8 @@ contract InsuranceProvider is ChainlinkClient {
     }
 
     function getContractStatus(address contractAddress) external view returns (bool) {
-        FTFUserInsuranceContract i = FTFUserInsuranceContract(payable(contractAddress));
+        InsuranceContract i = InsuranceContract(payable(contractAddress));
         return i.getContractStatus();
-
     }
 
     function getContractBalance() external view returns (uint) {

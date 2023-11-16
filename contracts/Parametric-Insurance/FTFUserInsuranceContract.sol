@@ -7,8 +7,7 @@ import "@chainlink/contracts/src/v0.8/interfaces/AggregatorV3Interface.sol";
 import "@chainlink/contracts/src/v0.8/shared/interfaces/LinkTokenInterface.sol";
 import "@chainlink/contracts/src/v0.8/shared/access/ConfirmedOwner.sol";
 
-
-contract FTFUserInsuranceContract is ChainlinkClient, ConfirmedOwner {
+contract InsuranceContract is ChainlinkClient, ConfirmedOwner {
     AggregatorV3Interface internal priceFeed;
     uint public constant DAY_IN_SECONDS = 60;
     uint public constant DROUGHT_DAYS_THRESHOLD = 3;
@@ -108,19 +107,6 @@ contract FTFUserInsuranceContract is ChainlinkClient, ConfirmedOwner {
         }
     }
 
-    // function checkRainfall(address _oracle, bytes32 _jobId, string memory _url, string memory _path) private onContractActive() returns (bytes32 requestId) {
-    //     Chainlink.Request memory req = buildChainlinkRequest(_jobId, address(this), this.checkRainfallCallBack.selector);
-    //     req.add("get", _url);
-    //     req.add("path", _path);
-    //     req.addInt("times", 100);
-
-    //     requestId = sendChainlinkRequestTo(_oracle, req, oraclePaymentAmount);
-
-    //     emit DataRequestSent(requestId);
-    // }
-
-    // ... (existing code)
-
 /**
  * @dev Calls out to an Oracle to obtain weather data
  */ 
@@ -181,6 +167,19 @@ function checkRainfall(address _oracle, bytes32 _jobId, string memory _url, stri
     }
 
 /**
+ * @dev Get the count of requests that have occurred for the Insurance Contract
+ */ 
+function getRequestCount() external view returns (uint) {
+    return requestCount;
+}
+/**
+ * @dev Get the status of the contract
+ */ 
+function getContractStatus() external view returns (bool) {
+    return contractActive;
+}
+
+/**
  * @dev Insurance conditions have not been met, and contract expired, end contract and return funds
  */ 
 function checkEndContract() private onContractEnded()   {
@@ -222,17 +221,6 @@ function checkEndContract() private onContractEnded()   {
     function getChainlinkToken() public view returns (address) {
         return chainlinkTokenAddress();
     }
-
-    /**
- * @dev Get the count of requests that have occurred for the Insurance Contract
- */
-function getRequestCount() external view returns (uint) {
-    return requestCount;
-}
-
-function getContractStatus() external view returns (bool) {
-    return contractActive;
-}
 
     fallback() external payable { }
     receive() external payable { }
