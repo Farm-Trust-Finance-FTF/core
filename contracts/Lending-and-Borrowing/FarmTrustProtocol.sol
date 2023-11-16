@@ -20,11 +20,23 @@ contract FarmTrustProtocol is CCIPReceiver, OwnerIsCreator {
     error NotEnoughBalance(uint256, uint256);
     error NothingToWithdraw();
     error FailedToWithdrawEth(address owner, uint256 value);
+<<<<<<< HEAD
 
     event CallerHasAlreadyBorrowedUSDC();
     event CallerHasNotTransferedThisToken();
     error RepaymentAmountIsLessThanAmountBorrowed();
     error CallerUSDCTokenBalanceInsufficientForRepayment();
+=======
+    error RepaymentAmountIsLessThanAmountBorrowed();
+    error CallerUSDCTokenBalanceInsufficientForRepayment();
+    error CallerHasAlreadyBorrowedUSDC();
+    error CallerHasNotTransferedThisToken();
+    error InsufficientAmount();
+    error WithdrawalFromZeroAddress();
+    error ChainSelectorZero();
+    error ZeroAddress();
+    error ProtocolAllowanceIsLessThanAmountBorrowed();
+>>>>>>> master
 
     // EVENTS
     event MessageSent(
@@ -44,6 +56,12 @@ contract FarmTrustProtocol is CCIPReceiver, OwnerIsCreator {
         Client.EVMTokenAmount tokenAmount
     );
 
+<<<<<<< HEAD
+=======
+    event ETHWithdrawn(address sender, uint256 amount);
+    event TokenWithdrawn(address sender, uint256 amount);
+
+>>>>>>> master
     // Struct to hold details of a message.
     struct MessageIn {
         uint64 sourceChainSelector;
@@ -54,7 +72,12 @@ contract FarmTrustProtocol is CCIPReceiver, OwnerIsCreator {
     }
 
     // STORAGE VARIABLES
+<<<<<<< HEAD
     bytes32[] public receivedMessages; // Array to keep track of the IDs of received messages.
+=======
+    // Array to keep track of the IDs of received messages.
+    bytes32[] public receivedMessages;
+>>>>>>> master
     mapping(bytes32 => MessageIn) public messageDetail;
     // Depsitor Address => Deposited Token Address ==> amount
     mapping(address => mapping(address => uint256)) public deposits;
@@ -66,6 +89,7 @@ contract FarmTrustProtocol is CCIPReceiver, OwnerIsCreator {
 
     constructor(address _router, address link) CCIPReceiver(_router) {
         linkToken = LinkTokenInterface(link);
+<<<<<<< HEAD
         usdcToken = new MockUSDC();
     }
 
@@ -107,6 +131,16 @@ contract FarmTrustProtocol is CCIPReceiver, OwnerIsCreator {
         deposits[depositor][token] += amount;
     }
 
+=======
+        // deploy mockUSD
+        usdcToken = new MockUSDC();
+    }
+
+    /**
+     * @param msgId messageId returned from the ` sendMessage()` in the source Blockchain ie `FarmTrustSender.sol`
+     * @dev allows FFT user to borrow USDC. It uses the chainlink priceFeed to get the price of DAI/USDC
+     */
+>>>>>>> master
     function borrowUSDC(bytes32 msgId) public returns (uint256) {
         uint256 borrowed = borrowings[msg.sender][address(usdcToken)];
 
@@ -119,12 +153,18 @@ contract FarmTrustProtocol is CCIPReceiver, OwnerIsCreator {
         uint256 deposited = deposits[msg.sender][transferredToken];
         uint256 borrowable = (deposited * 70) / 100; // 70% collaterization ratio.
 
+<<<<<<< HEAD
         // In this example we treat BnM as though it has the same value SNX. This is because BnM tokens are dummy tokens that are not on Chainlink Pricefeeds.
         // And that the USD/USDC peg is a perfect 1:1
         // SNX/USD on Sepolia (https://sepolia.etherscan.io/address/0xc0F82A46033b8BdBA4Bb0B0e28Bc2006F64355bC)
         // Docs: https://docs.chain.link/data-feeds/price-feeds/addresses#Sepolia%20Testnet
         AggregatorV3Interface priceFeed = AggregatorV3Interface(
             0xc0F82A46033b8BdBA4Bb0B0e28Bc2006F64355bC
+=======
+        // DAI/USD PriceFeed
+        AggregatorV3Interface priceFeed = AggregatorV3Interface(
+            0x14866185B1962B63C3Ea9E03Bc1da838bab34C19
+>>>>>>> master
         );
 
         (, int256 price, , , ) = priceFeed.latestRoundData();
@@ -142,9 +182,20 @@ contract FarmTrustProtocol is CCIPReceiver, OwnerIsCreator {
         return borrowableInUSDC;
     }
 
+<<<<<<< HEAD
     // Repay the Protocol. Transfer tokens back to source chain.
     // Assumes borrower has approved this contract to burn their borrowed token.
     // Assumes borrower has approved this contract to "spend" the transferred token so it can be transferred.
+=======
+    /**
+     * @param amount repayment amount
+     * @param destinationChain destination blockchain
+     * @param receiver receiver address
+     * @param msgId messageId
+     * @dev allows a user to repay the protocol and transfers the token back to the source chain. Burns the borrowed token unbehalf of the user
+     */
+
+>>>>>>> master
     function repayAndSendMessage(
         uint256 amount,
         uint64 destinationChain,
@@ -159,9 +210,15 @@ contract FarmTrustProtocol is CCIPReceiver, OwnerIsCreator {
         address transferredToken = messageDetail[msgId].token;
         uint256 deposited = deposits[msg.sender][transferredToken];
 
+<<<<<<< HEAD
         uint256 mockUSDCBal = usdcToken.balanceOf(msg.sender);
 
         if (mockUSDCBal < amount) {
+=======
+        uint256 mockUSDCBalance = usdcToken.balanceOf(msg.sender);
+
+        if (mockUSDCBalance < amount) {
+>>>>>>> master
             revert CallerUSDCTokenBalanceInsufficientForRepayment();
         }
 
@@ -169,6 +226,7 @@ contract FarmTrustProtocol is CCIPReceiver, OwnerIsCreator {
             usdcToken.allowance(msg.sender, address(this)) <
             borrowings[msg.sender][address(usdcToken)]
         ) {
+<<<<<<< HEAD
             revert("Protocol allowance is less than amount borrowed");
         }
 
@@ -180,11 +238,33 @@ contract FarmTrustProtocol is CCIPReceiver, OwnerIsCreator {
     }
 
     function sendMessage(
+=======
+            revert ProtocolAllowanceIsLessThanAmountBorrowed();
+        }
+
+        usdcToken.burn(msg.sender, mockUSDCBalance);
+
+        // Updates borrowings mapping
+        borrowings[msg.sender][address(usdcToken)] = 0;
+        // send transferred token and message back to Sepolia Sender contract
+        _sendMessage(destinationChain, receiver, transferredToken, deposited);
+    }
+
+    function _sendMessage(
+>>>>>>> master
         uint64 destinationChainSelector,
         address receiver,
         address tokenToTransfer,
         uint256 transferAmount
     ) internal returns (bytes32 messageId) {
+<<<<<<< HEAD
+=======
+        if (destinationChainSelector == 0) revert ChainSelectorZero();
+        if (receiver == address(0)) revert ZeroAddress();
+        if (tokenToTransfer == address(0)) revert ZeroAddress();
+        if (transferAmount == 0) revert InsufficientAmount();
+
+>>>>>>> master
         address borrower = msg.sender;
 
         // Compose the EVMTokenAmountStruct. This struct describes the tokens being transferred using CCIP.
@@ -199,6 +279,7 @@ contract FarmTrustProtocol is CCIPReceiver, OwnerIsCreator {
         tokenAmounts[0] = tokenAmount;
 
         Client.EVM2AnyMessage memory evm2AnyMessage = Client.EVM2AnyMessage({
+<<<<<<< HEAD
             receiver: abi.encode(receiver), // ABI-encoded receiver address
             data: abi.encode(borrower), // ABI-encoded string message
             tokenAmounts: tokenAmounts,
@@ -206,6 +287,15 @@ contract FarmTrustProtocol is CCIPReceiver, OwnerIsCreator {
                 Client.EVMExtraArgsV1({gasLimit: 200_000, strict: false}) // Additional arguments, setting gas limit and non-strict sequency mode
             ),
             feeToken: address(linkToken) // Setting feeToken to LinkToken address, indicating LINK will be used for fees
+=======
+            receiver: abi.encode(receiver),
+            data: abi.encode(borrower),
+            tokenAmounts: tokenAmounts,
+            extraArgs: Client._argsToBytes(
+                Client.EVMExtraArgsV1({gasLimit: 200_000, strict: false})
+            ),
+            feeToken: address(linkToken)
+>>>>>>> master
         });
 
         // Initialize a router client instance to interact with cross-chain
@@ -214,6 +304,12 @@ contract FarmTrustProtocol is CCIPReceiver, OwnerIsCreator {
         // Get the fee required to send the message
         uint256 fees = router.getFee(destinationChainSelector, evm2AnyMessage);
 
+<<<<<<< HEAD
+=======
+        if (fees > linkToken.balanceOf(address(this)))
+            revert NotEnoughBalance(linkToken.balanceOf(address(this)), fees);
+
+>>>>>>> master
         // approve the Router to send LINK tokens on contract's behalf. I will spend the fees in LINK
         linkToken.approve(address(router), fees);
 
@@ -241,6 +337,47 @@ contract FarmTrustProtocol is CCIPReceiver, OwnerIsCreator {
         return messageId;
     }
 
+<<<<<<< HEAD
+=======
+    /// handle a received message
+    function _ccipReceive(
+        Client.Any2EVMMessage memory any2EvmMessage
+    ) internal override {
+        bytes32 messageId = any2EvmMessage.messageId; // fetch the messageId
+        uint64 sourceChainSelector = any2EvmMessage.sourceChainSelector; // fetch the source chain identifier (aka selector)
+        address sender = abi.decode(any2EvmMessage.sender, (address)); // abi-decoding of the sender address
+        address depositor = abi.decode(any2EvmMessage.data, (address)); // abi-decoding of the depositor's address
+
+        // Collect tokens transferred. This increases this contract's balance for that Token.
+        Client.EVMTokenAmount[] memory tokenAmounts = any2EvmMessage
+            .destTokenAmounts;
+        address token = tokenAmounts[0].token;
+        uint256 amount = tokenAmounts[0].amount;
+
+        receivedMessages.push(messageId);
+
+        MessageIn memory detail = MessageIn(
+            sourceChainSelector,
+            sender,
+            depositor,
+            token,
+            amount
+        );
+        messageDetail[messageId] = detail;
+
+        emit MessageReceived(
+            messageId,
+            sourceChainSelector,
+            sender,
+            depositor,
+            tokenAmounts[0]
+        );
+
+        // Store depositor data.
+        deposits[depositor][token] += amount;
+    }
+
+>>>>>>> master
     function getNumberOfReceivedMessages()
         external
         view
@@ -298,6 +435,7 @@ contract FarmTrustProtocol is CCIPReceiver, OwnerIsCreator {
             IRouterClient(this.getRouter()).isChainSupported(destChainSelector);
     }
 
+<<<<<<< HEAD
     /// @notice Fallback function to allow the contract to receive Ether.
     /// @dev This function has no function body, making it a default function for receiving Ether.
     /// It is automatically called when Ether is sent to the contract without any data.
@@ -307,6 +445,18 @@ contract FarmTrustProtocol is CCIPReceiver, OwnerIsCreator {
     /// @dev This function reverts if there are no funds to withdraw or if the transfer fails.
     /// It should only be callable by the owner of the contract.
     function withdraw() public onlyOwner {
+=======
+    receive() external payable {}
+
+    fallback() external payable {}
+
+    /**
+     * @notice Allows the contract owner to withdraw the entire balance of Ether from the contract.
+     * @dev This function reverts if there are no funds to withdraw or if the transfer fails.
+       It should only be callable by the owner of the contract.
+     */
+    function withdrawETH() public onlyOwner {
+>>>>>>> master
         // Retrieve the balance of this contract
         uint256 amount = address(this).balance;
 
@@ -315,6 +465,7 @@ contract FarmTrustProtocol is CCIPReceiver, OwnerIsCreator {
 
         // Revert if the send failed, with information about the attempted transfer
         if (!sent) revert FailedToWithdrawEth(msg.sender, amount);
+<<<<<<< HEAD
     }
 
     /// @notice Allows the owner of the contract to withdraw all tokens of a specific ERC20 token.
@@ -324,5 +475,25 @@ contract FarmTrustProtocol is CCIPReceiver, OwnerIsCreator {
         // Retrieve the balance of this contract
         uint256 amount = IERC20(token).balanceOf(address(this));
         IERC20(token).transfer(msg.sender, amount);
+=======
+
+        emit ETHWithdrawn(msg.sender, amount);
+    }
+
+    /**
+     * @notice Allows the owner of the contract to withdraw all tokens of a specific ERC20 token.
+     * @dev This function reverts with a 'NothingToWithdraw' error if there are no tokens to withdraw.
+     * @param token The contract address of the ERC20 token to be withdrawn.
+     */
+
+    function withdrawToken(address token) public onlyOwner {
+        if (token == address(0)) revert WithdrawalFromZeroAddress();
+
+        // Retrieve the balance of this contract
+        uint256 amount = IERC20(token).balanceOf(address(this));
+        IERC20(token).transfer(msg.sender, amount);
+
+        emit TokenWithdrawn(msg.sender, amount);
+>>>>>>> master
     }
 }
