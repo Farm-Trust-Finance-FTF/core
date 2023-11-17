@@ -179,6 +179,62 @@ function getContractStatus() external view returns (bool) {
     return contractActive;
 }
 
+    /**
+     * @dev Get the contract start date
+     */
+    function getContractStartDate() external view returns (uint) {
+        return startDate;
+    }
+
+    /**
+     * @dev Get the Premium paid
+     */
+    function getPremium() external view returns (uint) {
+        return premium;
+    }
+
+        /**
+     * @dev Get whether the contract has been paid out or not
+     */
+    function getContractPaid() external view returns (bool) {
+        return contractPaid;
+    }
+
+        /**
+     * @dev Get the recorded number of days without rain
+     */
+    function getDaysWithoutRain() external view returns (uint) {
+        return daysWithoutRain;
+    }
+
+        /**
+     * @dev Get the contract duration
+     */
+    function getDuration() external view returns (uint) {
+        return duration;
+    }
+
+        /**
+     * @dev Get the Total Cover
+     */
+    function getPayoutValue() external view returns (uint) {
+        return payoutValue;
+    }
+
+        /**
+     * @dev Get the balance of the contract
+     */
+    function getContractBalance() external view returns (uint) {
+        return address(this).balance;
+    }
+
+        /**
+     * @dev Get the Crop Location
+     */
+    function getLocation() external view returns ( string memory) {
+        return cropLocation;
+    }
+
 /**
  * @dev Insurance conditions have not been met, and contract expired, end contract and return funds
  */ 
