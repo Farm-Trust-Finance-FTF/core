@@ -8,18 +8,17 @@ import "@chainlink/contracts/src/v0.8/shared/interfaces/LinkTokenInterface.sol";
 import "@chainlink/contracts/src/v0.8/shared/access/ConfirmedOwner.sol";
 
 contract FtfInsuranceProvider is ChainlinkClient {
-
     address public insurer = msg.sender;
     AggregatorV3Interface internal priceFeed;
     uint public constant DAY_IN_SECONDS = 60; //How many seconds in a day. 60 for testing, 86400 for Production
     uint256 constant private ORACLE_PAYMENT = 0.1 * 10**18;
-    address public constant LINK_KOVAN = 0xa36085F69e2889c224210F603D836748e7dC0088;
+    address public constant LINK_SEPOLIA = 0x779877A7B0D9E8603169DdbD7836e478b4624789;
     mapping(address => InsuranceContract) contracts;
 
     event ContractCreated(address indexed insuranceContract, uint premium, uint totalCover);
 
     constructor() payable {
-        priceFeed = AggregatorV3Interface(0x9326BFA02ADD2366b30bacB125260Af641031331);
+        priceFeed = AggregatorV3Interface(0x694AA1769357215DE4FAC081bf1f309aDC325306);
     }
 
         modifier onlyInsuranceProviderOwner() {
@@ -36,6 +35,7 @@ contract FtfInsuranceProvider is ChainlinkClient {
         uint _payoutValue,
         string memory _cropLocation
     ) public payable onlyInsuranceProviderOwner returns(address) {
+        // ... (existing code)
 
         InsuranceContract i = new InsuranceContract{
             value: (_payoutValue * 1 ether) / uint(getLatestPrice())
@@ -45,7 +45,7 @@ contract FtfInsuranceProvider is ChainlinkClient {
             _premium,
             _payoutValue,
             _cropLocation,
-            LINK_KOVAN,
+            LINK_SEPOLIA,
             ORACLE_PAYMENT
         );
 
@@ -91,7 +91,7 @@ contract FtfInsuranceProvider is ChainlinkClient {
     }
 
     function endContractProvider() external payable onlyInsuranceProviderOwner {
-        LinkTokenInterface link = LinkTokenInterface(LINK_KOVAN);
+        LinkTokenInterface link = LinkTokenInterface(LINK_SEPOLIA);
         require(link.transfer(msg.sender, link.balanceOf(address(this))), "Unable to transfer");
         selfdestruct(payable(insurer));
     }
@@ -157,7 +157,7 @@ contract InsuranceContract is ChainlinkClient, ConfirmedOwner {
     )
         payable ConfirmedOwner(msg.sender)
     {
-        priceFeed = AggregatorV3Interface(0x9326BFA02ADD2366b30bacB125260Af641031331);
+        priceFeed = AggregatorV3Interface(0x694AA1769357215DE4FAC081bf1f309aDC325306);
         setChainlinkToken(_link);
         _oraclePaymentAmount = (1 * LINK_DIVISIBILITY) / 10;
         oraclePaymentAmount = _oraclePaymentAmount;
@@ -227,9 +227,12 @@ function checkRainfall(address _oracle, bytes32 _jobId, string memory _url, stri
     emit DataRequestSent(requestId);
     return requestId;
 }
+
     function getCurrentRainfall() public view returns (uint) {
     return currentRainfall;
 }
+
+
     function checkRainfallCallBack(bytes32 _requestId, uint256 _rainfall) public recordChainlinkFulfillment(_requestId) onContractActive() callFrequencyOncePerDay() {
         currentRainfallList[dataRequestsSent] = _rainfall;
         dataRequestsSent = dataRequestsSent + 1;
