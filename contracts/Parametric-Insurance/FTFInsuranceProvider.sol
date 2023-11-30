@@ -29,4 +29,33 @@ contract FtfInsuranceProvider is ChainlinkClient {
 
     event contractCreated(address _insuranceContract, uint _premium, uint _totalCover);
 
+    function newContract(
+        address _client,
+        uint _duration,
+        uint _premium,
+        uint _payoutValue,
+        string memory _cropLocation
+    ) public payable onlyInsuranceProviderOwner returns(address) {
+
+        InsuranceContract i = new InsuranceContract{
+            value: (_payoutValue * 1 ether) / uint(getLatestPrice())
+        }(
+            _client,
+            _duration,
+            _premium,
+            _payoutValue,
+            _cropLocation,
+            LINK_KOVAN,
+            ORACLE_PAYMENT
+        );
+
+        contracts[address(i)] = i;
+        emit contractCreated(address(i), msg.value, _payoutValue);
+
+        LinkTokenInterface link = LinkTokenInterface(i.getChainlinkToken());
+        link.transfer(address(i), ((_duration / DAY_IN_SECONDS) + 2) * ORACLE_PAYMENT * 2);
+
+        return address(i);
+    }
+
 }
