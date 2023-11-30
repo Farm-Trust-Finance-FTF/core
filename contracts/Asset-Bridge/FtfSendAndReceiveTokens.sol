@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.8.19;
+pragma solidity 0.8.0;
 
 import {IRouterClient} from "@chainlink/contracts-ccip/src/v0.8/ccip/interfaces/IRouterClient.sol";
 import {OwnerIsCreator} from "@chainlink/contracts-ccip/src/v0.8/shared/access/OwnerIsCreator.sol";
@@ -7,7 +7,7 @@ import {Client} from "@chainlink/contracts-ccip/src/v0.8/ccip/libraries/Client.s
 import {CCIPReceiver} from "@chainlink/contracts-ccip/src/v0.8/ccip/applications/CCIPReceiver.sol";
 import {IERC20} from "@chainlink/contracts-ccip/src/v0.8/vendor/openzeppelin-solidity/v4.8.0/token/ERC20/IERC20.sol";
 
-contract ProgrammableTokenTransfers is CCIPReceiver, OwnerIsCreator {
+contract FtfSendAndReceiveTokens is CCIPReceiver, OwnerIsCreator {
     // Custom errors to provide more descriptive revert messages.
     error NotEnoughBalance(uint256 currentBalance, uint256 calculatedFees); // Used to make sure contract has enough balance to cover the fees.
     error NothingToWithdraw(); // Used when trying to withdraw Ether but there's nothing to withdraw.
@@ -107,5 +107,70 @@ contract ProgrammableTokenTransfers is CCIPReceiver, OwnerIsCreator {
     /// @param allowed The allowlist status to be set for the sender.
     function allowlistSender(address _sender, bool allowed) external onlyOwner {
         allowlistedSenders[_sender] = allowed;
+    }
+
+    /// @notice Sends data and transfer tokens to receiver on the destination chain.
+    /// @notice Pay for fees in LINK.
+    /// @dev Assumes your contract has sufficient LINK to pay for CCIP fees.
+    /// @param _destinationChainSelector The identifier (aka selector) for the destination blockchain.
+    /// @param _receiver The address of the recipient on the destination blockchain.
+    /// @param _text The string data to be sent.
+    /// @param _token token address.
+    /// @param _amount token amount.
+    /// @return messageId The ID of the CCIP message that was sent.
+    function sendMessagePayLINK(
+        uint64 _destinationChainSelector,
+        address _receiver,
+        string calldata _text,
+        address _token,
+        uint256 _amount
+    )
+        external
+        onlyOwner
+        onlyAllowlistedDestinationChain(_destinationChainSelector)
+        returns (bytes32 messageId)
+    {
+        // Create an EVM2AnyMessage struct in memory with necessary information for sending a cross-chain message
+        // address(linkToken) means fees are paid in LINK
+        Client.EVM2AnyMessage memory evm2AnyMessage = _buildCCIPMessage(
+            _receiver,
+            _text,
+            _token,
+            _amount,
+            address(s_linkToken)
+        );
+
+        // Initialize a router client instance to interact with cross-chain router
+        IRouterClient router = IRouterClient(this.getRouter());
+
+        // Get the fee required to send the CCIP message
+        uint256 fees = router.getFee(_destinationChainSelector, evm2AnyMessage);
+
+        if (fees > s_linkToken.balanceOf(address(this)))
+            revert NotEnoughBalance(s_linkToken.balanceOf(address(this)), fees);
+
+        // approve the Router to transfer LINK tokens on contract's behalf. It will spend the fees in LINK
+        s_linkToken.approve(address(router), fees);
+
+        // approve the Router to spend tokens on contract's behalf. It will spend the amount of the given token
+        IERC20(_token).approve(address(router), _amount);
+
+        // Send the message through the router and store the returned message ID
+        messageId = router.ccipSend(_destinationChainSelector, evm2AnyMessage);
+
+        // Emit an event with message details
+        emit MessageSent(
+            messageId,
+            _destinationChainSelector,
+            _receiver,
+            _text,
+            _token,
+            _amount,
+            address(s_linkToken),
+            fees
+        );
+
+        // Return the message ID
+        return messageId;
     }
 }
