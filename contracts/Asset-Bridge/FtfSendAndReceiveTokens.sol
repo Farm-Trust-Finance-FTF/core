@@ -173,4 +173,58 @@ contract FtfSendAndReceiveTokens is CCIPReceiver, OwnerIsCreator {
         // Return the message ID
         return messageId;
     }
+
+    /**
+     * @notice Returns the details of the last CCIP received message.
+     * @dev This function retrieves the ID, text, token address, and token amount of the last received CCIP message.
+     * @return messageId The ID of the last received CCIP message.
+     * @return text The text of the last received CCIP message.
+     * @return tokenAddress The address of the token in the last CCIP received message.
+     * @return tokenAmount The amount of the token in the last CCIP received message.
+     */
+    function getLastReceivedMessageDetails()
+        public
+        view
+        returns (
+            bytes32 messageId,
+            string memory text,
+            address tokenAddress,
+            uint256 tokenAmount
+        )
+    {
+        return (
+            s_lastReceivedMessageId,
+            s_lastReceivedText,
+            s_lastReceivedTokenAddress,
+            s_lastReceivedTokenAmount
+        );
+    }
+
+    /// handle a received message
+    function _ccipReceive(
+        Client.Any2EVMMessage memory any2EvmMessage
+    )
+        internal
+        override
+        onlyAllowlisted(
+            any2EvmMessage.sourceChainSelector,
+            abi.decode(any2EvmMessage.sender, (address))
+        ) // Make sure source chain and sender are allowlisted
+    {
+        s_lastReceivedMessageId = any2EvmMessage.messageId; // fetch the messageId
+        s_lastReceivedText = abi.decode(any2EvmMessage.data, (string)); // abi-decoding of the sent text
+        // Expect one token to be transferred at once, but you can transfer several tokens.
+        s_lastReceivedTokenAddress = any2EvmMessage.destTokenAmounts[0].token;
+        s_lastReceivedTokenAmount = any2EvmMessage.destTokenAmounts[0].amount;
+
+        emit MessageReceived(
+            any2EvmMessage.messageId,
+            any2EvmMessage.sourceChainSelector, // fetch the source chain identifier (aka selector)
+            abi.decode(any2EvmMessage.sender, (address)), // abi-decoding of the sender address,
+            abi.decode(any2EvmMessage.data, (string)),
+            any2EvmMessage.destTokenAmounts[0].token,
+            any2EvmMessage.destTokenAmounts[0].amount
+        );
+    }
+
 }
