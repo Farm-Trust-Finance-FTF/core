@@ -94,7 +94,7 @@ contract FarmTrustProtocol is CCIPReceiver, OwnerIsCreator {
         uint256 deposited = deposits[msg.sender][transferredToken];
         uint256 borrowable = (deposited * 70) / 100; // 70% collaterization ratio.
 
-        // DAI/USD PriceFeed
+        // DAI/USD PriceFeed on Sepolia
         AggregatorV3Interface priceFeed = AggregatorV3Interface(
             0x14866185B1962B63C3Ea9E03Bc1da838bab34C19
         );
