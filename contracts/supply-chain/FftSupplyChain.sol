@@ -73,5 +73,20 @@ contract FtfSupplyChain {
 
     return 0;
     }
+
+    modifier onlyOwner(uint32 _productId) {
+        require(msg.sender == products[_productId].productOwner,"");
+        _;
+
+    }
+
+    function getProduct(uint32 _productId) public view returns (string memory,string memory,string memory,uint32,address,uint32){
+        return (products[_productId].modelNumber,
+                products[_productId].partNumber,
+                products[_productId].serialNumber,
+                products[_productId].cost,
+                products[_productId].productOwner,
+                products[_productId].mfgTimeStamp);
+    }
 }
 
