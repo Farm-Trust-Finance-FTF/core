@@ -174,10 +174,10 @@ contract InsuranceContract is ChainlinkClient, ConfirmedOwner {
         contractActive = true;
         cropLocation = _cropLocation;
 
-        oracles[0] = 0x05c8fadf1798437c143683e665800d58a42b6e19;
-        oracles[1] = 0x05c8fadf1798437c143683e665800d58a42b6e19;
-        jobIds[0] = 'a17e8fbf4cbf46eeb79e04b3eb864a4e';
-        jobIds[1] = 'a17e8fbf4cbf46eeb79e04b3eb864a4e';
+        oracles[0] = 0x6090149792dAAeE9D1D568c9f9a6F6B46AA29eFD;
+        oracles[1] = 0x6090149792dAAeE9D1D568c9f9a6F6B46AA29eFD;
+        jobIds[0] = '7da2702f37fd48e5b1b9a5715e3509b6';
+        jobIds[1] = '7da2702f37fd48e5b1b9a5715e3509b6';
 
         emit ContractCreated(insurer, client, duration, premium, payoutValue);
     }
