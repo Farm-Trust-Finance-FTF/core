@@ -77,10 +77,6 @@ contract FtfInsuranceProvider is ChainlinkClient {
         return i.getRequestCount();
     }
 
-    function getInsurer() external view returns (address) {
-        return insurer;
-    }
-
     function getContractStatus(address contractAddress) external view returns (bool) {
         InsuranceContract i = InsuranceContract(payable(contractAddress));
         return i.getContractStatus();
@@ -88,12 +84,6 @@ contract FtfInsuranceProvider is ChainlinkClient {
 
     function getContractBalance() external view returns (uint) {
         return address(this).balance;
-    }
-
-    function endContractProvider() external payable onlyInsuranceProviderOwner {
-        LinkTokenInterface link = LinkTokenInterface(LINK_SEPOLIA);
-        require(link.transfer(msg.sender, link.balanceOf(address(this))), "Unable to transfer");
-        selfdestruct(payable(insurer));
     }
 
     function getLatestPrice() public view returns (int) {
