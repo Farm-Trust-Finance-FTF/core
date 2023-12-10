@@ -136,5 +136,27 @@ contract FtfSupplyChain {
 
     return productTrack[_prodId];
     }
+
+    function getOwnership(uint32 _regId)  public view returns (uint32,uint32,address,uint32) {
+
+        ownership memory r = ownerships[_regId];
+
+        return (r.productId,r.ownerId,r.productOwner,r.trxTimeStamp);
+    }
+
+    function authenticateParticipant(uint32 _uid,
+                                    string memory _uname,
+                                    string memory _pass,
+                                    string memory _utype) public view returns (bool){
+        if(keccak256(abi.encodePacked(participants[_uid].participantType)) == keccak256(abi.encodePacked(_utype))) {
+            if(keccak256(abi.encodePacked(participants[_uid].userName)) == keccak256(abi.encodePacked(_uname))) {
+                if(keccak256(abi.encodePacked(participants[_uid].password)) == keccak256(abi.encodePacked(_pass))) {
+                    return (true);
+                }
+            }
+        }
+
+        return (false);
+    }
 }
 
