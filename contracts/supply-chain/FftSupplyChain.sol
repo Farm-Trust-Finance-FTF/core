@@ -88,5 +88,53 @@ contract FtfSupplyChain {
                 products[_productId].productOwner,
                 products[_productId].mfgTimeStamp);
     }
+
+    function newOwner(uint32 _user1Id,uint32 _user2Id, uint32 _prodId) onlyOwner(_prodId) public returns (bool) {
+        participant memory p1 = participants[_user1Id];
+        participant memory p2 = participants[_user2Id];
+        uint32 ownership_id = owner_id++;
+
+        if(keccak256(abi.encodePacked(p1.participantType)) == keccak256("Manufacturer")
+            && keccak256(abi.encodePacked(p2.participantType))==keccak256("Supplier")){
+            ownerships[ownership_id].productId = _prodId;
+            ownerships[ownership_id].productOwner = p2.participantAddress;
+            ownerships[ownership_id].ownerId = _user2Id;
+            ownerships[ownership_id].trxTimeStamp = uint32(block.timestamp);
+            products[_prodId].productOwner = p2.participantAddress;
+            productTrack[_prodId].push(ownership_id);
+            emit TransferOwnership(_prodId);
+
+            return (true);
+        }
+        else if(keccak256(abi.encodePacked(p1.participantType)) == keccak256("Supplier") && keccak256(abi.encodePacked(p2.participantType))==keccak256("Supplier")){
+            ownerships[ownership_id].productId = _prodId;
+            ownerships[ownership_id].productOwner = p2.participantAddress;
+            ownerships[ownership_id].ownerId = _user2Id;
+            ownerships[ownership_id].trxTimeStamp = uint32(block.timestamp);
+            products[_prodId].productOwner = p2.participantAddress;
+            productTrack[_prodId].push(ownership_id);
+            emit TransferOwnership(_prodId);
+
+            return (true);
+        }
+        else if(keccak256(abi.encodePacked(p1.participantType)) == keccak256("Supplier") && keccak256(abi.encodePacked(p2.participantType))==keccak256("Consumer")){
+            ownerships[ownership_id].productId = _prodId;
+            ownerships[ownership_id].productOwner = p2.participantAddress;
+            ownerships[ownership_id].ownerId = _user2Id;
+            ownerships[ownership_id].trxTimeStamp = uint32(block.timestamp);
+            products[_prodId].productOwner = p2.participantAddress;
+            productTrack[_prodId].push(ownership_id);
+            emit TransferOwnership(_prodId);
+
+            return (true);
+        }
+
+        return (false);
+    }
+
+    function getProvenance(uint32 _prodId) external view returns (uint32[] memory) {
+
+    return productTrack[_prodId];
+    }
 }
 
