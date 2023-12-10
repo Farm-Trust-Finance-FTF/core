@@ -46,5 +46,32 @@ contract FtfSupplyChain {
 
         return userId;
     }
+
+    function getParticipant(uint32 _participant_id) public view returns (string memory,address,string memory) {
+        return (participants[_participant_id].userName,
+                participants[_participant_id].participantAddress,
+                participants[_participant_id].participantType);
+    }
+
+    function addProduct(uint32 _ownerId,
+                        string memory _modelNumber,
+                        string memory _partNumber,
+                        string memory _serialNumber,
+                        uint32 _productCost) public returns (uint32) {
+        if(keccak256(abi.encodePacked(participants[_ownerId].participantType)) == keccak256("Manufacturer")) {
+            uint32 productId = product_id++;
+
+            products[productId].modelNumber = _modelNumber;
+            products[productId].partNumber = _partNumber;
+            products[productId].serialNumber = _serialNumber;
+            products[productId].cost = _productCost;
+            products[productId].productOwner = participants[_ownerId].participantAddress;
+            products[productId].mfgTimeStamp = uint32(block.timestamp);
+
+            return productId;
+        }
+
+    return 0;
+    }
 }
 
