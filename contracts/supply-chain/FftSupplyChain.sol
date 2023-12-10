@@ -31,5 +31,20 @@ contract FtfSupplyChain {
         uint32 trxTimeStamp;
         address productOwner;
     }
+
+    mapping(uint32 => ownership) public ownerships; // ownerships by ownership ID (owner_id)
+    mapping(uint32 => uint32[]) public productTrack;  // ownerships by Product ID (product_id) / Movement track for a product
+
+    event TransferOwnership(uint32 productId);
+
+    function addParticipant(string memory _name, string memory _pass, address _pAdd, string memory _pType) public returns (uint32){
+        uint32 userId = participant_id++;
+        participants[userId].userName = _name;
+        participants[userId].password = _pass;
+        participants[userId].participantAddress = _pAdd;
+        participants[userId].participantType = _pType;
+
+        return userId;
+    }
 }
 
